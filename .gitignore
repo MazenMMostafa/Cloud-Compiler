@@ -12,6 +12,11 @@ tools/arduino-cli.zip
 # Environment / secrets
 .env
 .env.local
+.env.*
+!.env.example
+
+# Vercel CLI local project link
+.vercel/
 
 # IDE / OS
 .idea/
