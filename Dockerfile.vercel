@@ -51,6 +51,13 @@ RUN arduino-cli core update-index \
 # ---- Stage 3: minimal runtime image ----
 FROM debian:bookworm-slim AS runtime
 
+# Vercel injects project environment variables as Docker build arguments.
+# Baking the key into the image ENV guarantees it is present at runtime even
+# though Vercel does not expose project env vars to the container's process
+# environment. The key stays inside the private VCR image for this project.
+ARG COMPILER_API_KEY
+ENV COMPILER_API_KEY=${COMPILER_API_KEY}
+
 # The AVR toolchain binaries and the Dart AOT binary link against glibc.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates libgcc-s1 \
