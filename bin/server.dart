@@ -23,11 +23,20 @@ Future<void> main() async {
   final apiKey = Platform.environment['COMPILER_API_KEY'];
   final cliPath = _findDefaultCli();
 
+  final diagEnvCount = Platform.environment.length;
+  final diagKeyState = apiKey == null
+      ? 'absent'
+      : (apiKey.isEmpty ? 'present-but-empty' : 'present-nonempty');
+  final diagMarker = Platform.environment.containsKey('CC_DIAG');
+  final diagPlain = Platform.environment.containsKey('CC_PLAIN');
+  final diagPortValue = Platform.environment['PORT'];
+
   stdout.writeln('NewBegin Compiler Server');
   stdout.writeln('  arduino-cli: $cliPath');
   stdout.writeln('  Host:        $host');
   stdout.writeln('  Port:        $port');
   stdout.writeln('  API key:     ${apiKey != null && apiKey.isNotEmpty ? 'enabled' : 'disabled'}');
+  stdout.writeln('  DIAG envCount=$diagEnvCount key=$diagKeyState sensitiveMarker=$diagMarker plainMarker=$diagPlain portEnv=$diagPortValue');
   stdout.writeln('');
 
   final compiler = ArduinoCliCompiler(cliPath: cliPath);
