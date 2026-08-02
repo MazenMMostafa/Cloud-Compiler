@@ -1,0 +1,27 @@
+# Dart tooling
+.dart_tool/
+build/
+*.log
+
+# Test / local dev artifacts — not needed in the image
+test/
+docs/
+tools/
+setup.bat
+setup.sh
+
+# VCS / IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+
+# OS junk
+.DS_Store
+Thumbs.db

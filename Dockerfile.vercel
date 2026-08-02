@@ -1,0 +1,80 @@
+# syntax=docker/dockerfile:1.4
+
+# Multi-stage build for the NewBegin Arduino Uno cloud compiler.
+# Builds a self-contained native Dart server binary and pre-installs the
+# Arduino AVR toolchain so NO downloads happen at request time.
+
+# ---- Stage 1: compile the Dart server to a native AOT binary ----
+FROM dart:3.8.0 AS build
+
+WORKDIR /app
+
+# Dependencies first for better layer caching.
+COPY pubspec.yaml pubspec.lock ./
+RUN dart pub get
+
+COPY bin/ bin/
+COPY lib/ lib/
+
+# AOT-compile so the runtime image does not need the Dart SDK.
+RUN mkdir -p /out && dart compile exe bin/server.dart -o /out/server
+
+# ---- Stage 2: install arduino-cli + Arduino AVR core at build time ----
+FROM debian:bookworm-slim AS toolchain
+
+# Pin toolchain versions.
+ARG ARDUINO_CLI_VERSION=1.5.1
+ARG AVR_CORE_VERSION=1.8.6
+
+# Store arduino data in a fixed path independent of the user's $HOME.
+ENV ARDUINO_DIRECTORIES_DATA=/arduino \
+    ARDUINO_DIRECTORIES_DOWNLOADS=/arduino-downloads \
+    ARDUINO_DIRECTORIES_USER=/arduino-user
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install the pinned arduino-cli release.
+RUN curl -fsSL \
+      "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz" \
+      -o /tmp/arduino-cli.tar.gz \
+    && tar -xzf /tmp/arduino-cli.tar.gz -C /usr/local/bin \
+    && rm -f /tmp/arduino-cli.tar.gz \
+    && arduino-cli version
+
+# Install the Arduino AVR core (avr-gcc toolchain) during the build,
+# never at request time. `core update-index` is a build step only.
+RUN arduino-cli core update-index \
+    && arduino-cli core install arduino:avr@${AVR_CORE_VERSION}
+
+# ---- Stage 3: minimal runtime image ----
+FROM debian:bookworm-slim AS runtime
+
+# The AVR toolchain binaries and the Dart AOT binary link against glibc.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libgcc-s1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user that owns all writable directories the server needs.
+RUN useradd --create-home --shell /usr/sbin/nologin compiler
+
+ENV ARDUINO_DIRECTORIES_DATA=/arduino \
+    ARDUINO_DIRECTORIES_DOWNLOADS=/arduino-downloads \
+    ARDUINO_DIRECTORIES_USER=/arduino-user
+
+COPY --from=toolchain /usr/local/bin/arduino-cli /usr/local/bin/arduino-cli
+COPY --from=toolchain /arduino /arduino
+COPY --from=build /out/server /usr/local/bin/newbegin-server
+
+RUN mkdir -p /arduino-downloads /arduino-user /tmp \
+    && chown -R compiler:compiler /arduino /arduino-downloads /arduino-user /tmp
+
+USER compiler
+WORKDIR /home/compiler
+
+# Vercel injects PORT; default to 3000 for local `docker run`.
+ENV PORT=3000
+EXPOSE 3000
+
+CMD ["/usr/local/bin/newbegin-server"]

@@ -1,0 +1,21 @@
+# Dart / pub
+.dart_tool/
+build/
+*.log
+
+# Bundled toolchain binaries (downloaded by setup.bat / setup.sh)
+tools/arduino-cli
+tools/arduino-cli.exe
+tools/arduino-cli.tar.gz
+tools/arduino-cli.zip
+
+# Environment / secrets
+.env
+.env.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
