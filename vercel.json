@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/version.json",
+      "destination": "https://3abrdlydzjyw1e55.public.blob.vercel-storage.com/version.json"
+    },
+    {
+      "source": "/releases.json",
+      "destination": "https://3abrdlydzjyw1e55.public.blob.vercel-storage.com/releases.json"
+    },
+    {
+      "source": "/releases",
+      "destination": "https://3abrdlydzjyw1e55.public.blob.vercel-storage.com/releases.html"
+    }
+  ]
+}
